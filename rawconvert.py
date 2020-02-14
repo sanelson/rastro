@@ -13,5 +13,5 @@ raw_file = args.raw_file
 output_file = args.output
 
 with rawpy.imread(raw_file) as raw:
-    rgb = raw.postprocess()
+  rgb = raw.postprocess()
 imageio.imsave(output_file, rgb)
