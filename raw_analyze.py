@@ -3,10 +3,59 @@ import rawpy
 import imageio
 import argparse
 import matplotlib as mpl
+mpl.use('Qt5Agg')  # Change plotting backend for increased performance: https://matplotlib.org/faq/usage_faq.html#what-is-a-backend
 from matplotlib import pyplot as plt
 import numpy as np
 import numpy.ma as ma
 import PIL
+
+import numba
+#import numpy as np
+
+# Stolen from numba histogram example: https://numba.pydata.org/numba-examples/examples/density_estimation/histogram/results.html
+@numba.jit(nopython=True)
+def get_bin_edges(a, bins):
+    bin_edges = np.zeros((bins+1,), dtype=np.float64)
+    a_min = a.min()
+    a_max = a.max()
+    delta = (a_max - a_min) / bins
+    for i in range(bin_edges.shape[0]):
+        bin_edges[i] = a_min + i * delta
+
+    bin_edges[-1] = a_max  # Avoid roundoff error on last point
+    return bin_edges
+
+
+@numba.jit(nopython=True)
+def compute_bin(x, bin_edges):
+    # assuming uniform bins for now
+    n = bin_edges.shape[0] - 1
+    a_min = bin_edges[0]
+    a_max = bin_edges[-1]
+
+    # special case to mirror NumPy behavior for last bin
+    if x == a_max:
+        return n - 1 # a_max always in last bin
+
+    bin = int(n * (x - a_min) / (a_max - a_min))
+
+    if bin < 0 or bin >= n:
+        return None
+    else:
+        return bin
+
+
+@numba.jit(nopython=True)
+def numba_histogram(a, bins):
+    hist = np.zeros((bins,), dtype=np.intp)
+    bin_edges = get_bin_edges(a, bins)
+
+    for x in a.flat:
+        bin = compute_bin(x, bin_edges)
+        if bin is not None:
+            hist[int(bin)] += 1
+
+    return hist, bin_edges
 
 def get_color_shade(color_plane_name):
   """
@@ -37,7 +86,8 @@ def get_color_shade(color_plane_name):
 
 # High DPI screen plot resolution hack
 # TODO: figure out how to add some intelligence for handling different display DPIs
-mpl.rcParams['figure.dpi'] = 300
+# Qt5Agg plotting backend seems to handle this gracefully (and plots faster!)
+#mpl.rcParams['figure.dpi'] = 300
 
 # Links:
 # https://docs.scipy.org/doc/numpy/reference/maskedarray.generic.html
@@ -46,11 +96,13 @@ mpl.rcParams['figure.dpi'] = 300
 # Notes
 # 1. Try to determine original raw file image depth in order to build an accurate histogram
 #    a. Yuck, this is harder than I thought: https://www.libraw.org/node/2205
+# 2. Profile python scripts using pyinstrument
+#    a. eg. pyinstrument /opt/rawconvert/raw_analyze.py 20200310_0065.cr2
 
 # Process command line arguments
 parser = argparse.ArgumentParser(description='Analyze Raw camera files.')
 #parser.add_argument('-o', '--output', help='Filename for conversion output', type=str)
-#parser.add_argument('-h', '--histogram', help='Generate histogram of RAW file image data')
+#parser.add_argument('histogram', help='Generate histogram of RAW file image data')
 parser.add_argument('raw_file', help='Raw Filename for analysis', type=str)
 
 args = parser.parse_args()
@@ -117,7 +169,8 @@ with rawpy.imread(raw_file) as raw:
     
     # Reshape the array
     # TODO: Is this the best way?
-    color_plane_2d = np.reshape(color_plane_1d, half_size_shape)
+    # See: https://docs.scipy.org/doc/numpy/reference/generated/numpy.reshape.html
+#    color_plane_2d = np.reshape(color_plane_1d, half_size_shape)
     #print('Reshaped Color plane data: \n', color_plane_2d.data)
 
     #print("2D Shape: ", color_plane_2d.shape)
@@ -131,7 +184,37 @@ with rawpy.imread(raw_file) as raw:
     #plt.hist(color_plane_1d, 256, density=True, facecolor='g', alpha=0.75)
     #plt.hist(color_plane_1d, 256, density=False, facecolor='g', alpha=0.75)
     #plt.hist(color_plane_1d, 256, density=False, facecolor=color_plane_idx[i][0].lower(), alpha=0.75)
-    plt.hist(color_plane_1d, 1024, density=False, facecolor=get_color_shade(color_plane_idx[i]), alpha=0.75, label=color_plane_idx[i])
+
+    # Use Numba to compute histogram
+    #color_plane_hist = numba_histogram(a, bins)
+    #color_plane_hist, color_plane_hist_bins = numba_histogram(color_plane_1d, 1023)
+    color_plane_hist, color_plane_hist_bins = numba_histogram(color_plane_1d, 2**14)
+#    color_plane_hist = numba_histogram(color_plane_1d, 1024)
+#    print(color_plane_hist.shape)
+#    print(color_plane_hist)
+    #plt.hist(color_plane_1d, 1024, density=False, facecolor=get_color_shade(color_plane_idx[i]), alpha=0.75, label=color_plane_idx[i])
+    #plt.plot(color_plane_hist_bins[:-1], color_plane_hist, color=get_color_shade(color_plane_idx[i]), alpha=0.75, label=color_plane_idx[i])
+    plt.plot(color_plane_hist_bins[:-1], color_plane_hist, 
+             color=get_color_shade(color_plane_idx[i]), 
+             alpha=0.75, 
+             linewidth=1,
+             label=color_plane_idx[i])
+
+    #plt.margins(0)
+    #plt.subplots_adjust(left=0, right=0, top=0.9, bottom=0)
+  #plt.axis('off')
+    ax = plt.gca();
+  #  ax.set_xlim(0.0, color_plane_hist);
+    #ax.set_ylim(ax.get_ylim()[0], 0.0);
+    ax.set_ylim(0.0)
+    ax.set_xlim(0.0, 2**14)  # Fix this hardcoded crap, default bit depth can be 14bit
+    #ax.set_xlim(0.0, ax.get_xlim()[1]-ax.get_xlim()[0]);
+    #ax.set_xlim(0.0, ax.get_xlim()[1]-ax.get_xlim()[0]);
+    #print(ax.get_xlim()[1])
+
+
+    #plt.plot(range(0, int((2**14/1024))-1), color_plane_1d)
+    #plt.plot(range(0, 16383), color_plane_1d)
     #plt.title("Image Histogram")
     #plt.show()
 
@@ -143,11 +226,17 @@ with rawpy.imread(raw_file) as raw:
     #plt.imsave("{}.{}.{}".format(raw_file, color_plane_idx[i], "png"), color_plane_2d)
 #    plt.imsave("{}.{}.{}".format(raw_file, color_plane_idx[i], "tiff"), color_plane_2d)
 
-  plt.title("Image Histogram")
+  plt.title("RAW Image ADU counts")
 #  plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 #  plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left', ncol=2, mode="expand", borderaxespad=0.)
+  plt.xlabel('ADU')
+  plt.ylabel('Count')
   plt.legend()
   plt.show()
+#  Useful for performance testing
+#  plt.show(block=False)
+#  plt.pause(1)
+#  plt.close()
 
 ##  rgb = raw.postprocess()
 #  raw_image = raw.raw_image_visible
