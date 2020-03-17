@@ -1,12 +1,7 @@
 #!/bin/env python3
-import rawpy
-import tifffile # https://pypi.org/project/tifffile/  Good library for scientific image processing in TIFF format
-import imageio
 import argparse
-import matplotlib as mpl
-import numpy as np
-import numpy.ma as ma
 import raw_math  # Our computation routines
+import raw_util  # Our utility routines
 
 """
 https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
@@ -63,48 +58,65 @@ Stretch Goals:
 # Process command line arguments
 parser = argparse.ArgumentParser(description='Extract and convert RAW camera files.')
 parser.add_argument('-v', '--verbosity', help='Enable more logging output', type=bool, default=False)
-subparsers = parser.add_subparsers(help='Sub command help')
+subparsers = parser.add_subparsers(
+    title='subcommands',
+    description='valid subcommands',
+    help='Sub command help',
+    dest='command'
+)
 
 # Add subcommands for different image types
 parser_tiff = subparsers.add_parser('tiff', help='Export in TIFF format')
 # TODO: ensure RGB image output must be in uint8
-parser_tiff.add_argument('--bit_depth_type', type=str, help='Bit depth and type of TIFF file', choices=["uint8","uint16","float32"], default='uint16')
+parser_tiff.add_argument(
+    '--bit_depth_type',
+    type=str,
+    help='Bit depth and type of TIFF file',
+    choices=['uint8','uint16','float32'],
+    default='uint16'
+)
 
 # Add argument for our input file
-parser.add_argument('raw_file', help='Raw Filename for extraction', type=str)
+parser.add_argument('raw_filename', help='Raw Filename for extraction', type=str)
 
 # Parse the args and make them available
 args = parser.parse_args()
 
-# Open the RAW file for reading
-with rawpy.imread(args.raw_file) as raw:
-  color_plane_count = raw.num_colors + 1
+# Extract color planes from RAW file
+color_planes = raw_util.raw_reader(args.raw_filename)
 
-  # Extract individual color planes
-  color_plane_map = raw_math.get_color_plane_map(color_plane_count, raw.color_desc)
-  for i in range(color_plane_count):
-    # TODO: Document exactly what is taking place with this numpy array transformation
-    mask = (raw.raw_colors_visible != i)
-    color_plane_masked = ma.masked_array(np.copy(raw.raw_image_visible), mask)
-    # TODO: Do camera sensors ever have an odd number of pixels in x/y?  This would skew results slightly.
-    half_size_shape = tuple(int(dim/2) for dim in raw.raw_image_visible.shape)
-    color_plane_1d = color_plane_masked[~color_plane_masked.mask]
+# Write output
+if args.command == 'tiff':
+  raw_util.tiff_4channel_writer(
+      args.raw_filename,
+      color_planes,
+      args.bit_depth_type,
+      compress=6
+  )
+elif args.command == 'fits':
+  # Placeholder for FITS file support
+  pass
+elif args.command == 'png':
+  # Placeholder for PNG file support
+  pass
+elif args.command == 'jpeg':
+  # Placeholder for JPEG file support
+  pass
+elif args.command == 'ppm':
+  # Placeholder for PPM file support
+  pass
+elif args.command == 'pgm':
+  # Placeholder for PGM file support
+  pass
+elif args.command == 'dng':
+  # Placeholder for DNG file support
+  # see: https://github.com/schoolpost/PyDNG/blob/master/pydng.py
+  #      https://github.com/krontech/chronos-utils/tree/master/python_raw2dng
+  pass
+else:
+  # Most basic extraction mode, write single RGB tiff
+  # Method #1, do all raw processing manually
+  # Method #2, use libraw's handy RGB conversion
+  # Initially we will just do method 1 to ensure data is as unmodified as possible.
 
-    # Reshape the array
-    # TODO: Is this the best way?
-    # See: https://docs.scipy.org/doc/numpy/reference/generated/numpy.reshape.html
-    color_plane_2d = np.reshape(color_plane_1d, half_size_shape)
-
-    # Use Numba to compute histogram, more performant than simply using numpy
-    #color_plane_hist, color_plane_hist_bins = raw_math.numba_histogram(color_plane_1d, args.bins)
-
-    # Create plot for a basic histogram of this color plane
-    #plt.plot(color_plane_hist_bins[:-1], color_plane_hist, 
-    #         color=raw_math.get_color_shade(color_plane_map[i]), 
-    #         alpha=0.75, 
-    #         linewidth=1,
-    #         label=color_plane_map[i])
-
-    # Write color plane to file
-    tiff_filename = args.raw_file + "." + color_plane_map[i] + ".tiff"
-    tifffile.imsave(tiff_filename, color_plane_2d.astype(args.bit_depth_type), metadata={'DocumentName': tiff_filename}, compress=6)
+  pass
