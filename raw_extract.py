@@ -91,6 +91,17 @@ parser_tiff.add_argument(
     default=True
 )
 
+# Add FITS subcommand
+parser_fits = subparsers.add_parser('fits', help='Export in FITS format')
+
+parser_fits.add_argument(
+    '--color_plane_name',
+    type=str,
+    help='Single color plane/channel to export in FITS format',
+    choices=['R', 'G1', 'G2', 'B'],
+    default='G1'
+)
+
 # Add argument for our input file
 parser.add_argument('raw_filename', help='Raw Filename for extraction', type=str)
 
@@ -121,8 +132,15 @@ if args.command == 'tiff':
       compress=6
   )
 elif args.command == 'fits':
-  # Placeholder for FITS file support
-  pass
+  if args.color_plane_name:
+    raw_util.fits_single_channel_writer(
+        args.raw_filename,
+        color_planes[args.color_plane_name]['2D'],
+        args.color_plane_name
+    )
+  else:
+    # TBD
+    pass
 elif args.command == 'png':
   # Placeholder for PNG file support
   pass

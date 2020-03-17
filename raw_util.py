@@ -3,6 +3,7 @@ import matplotlib as mpl
 # TODO: See what backends are available and fallback to tkinter with a warning if none are available
 mpl.use('Qt5Agg')  # Change plotting backend for increased performance: https://matplotlib.org/faq/usage_faq.html#what-is-a-backend
 from matplotlib import pyplot as plt
+from astropy.io import fits
 import numpy as np
 import numpy.ma as ma
 import raw_math # Our computation routines
@@ -41,6 +42,14 @@ def raw_reader(raw_filename):
       color_planes[color_plane_map[i]]["2D"] = np.reshape(color_planes[color_plane_map[i]]["1D"], half_size_shape)
 
     return color_planes
+
+def fits_single_channel_writer(raw_filename, color_plane, color_plane_name, **options):
+  hdu = fits.PrimaryHDU(color_plane)
+
+  hdul = fits.HDUList([hdu])
+
+  fits_filename = raw_filename + '.' + color_plane_name + '.fits'
+  hdul.writeto(fits_filename)
 
 def tiff_4channel_writer(raw_filename, color_planes, bit_depth_type, **options):
   # Write color plane to file
