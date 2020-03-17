@@ -1,4 +1,8 @@
 import rawpy
+import matplotlib as mpl
+# TODO: See what backends are available and fallback to tkinter with a warning if none are available
+mpl.use('Qt5Agg')  # Change plotting backend for increased performance: https://matplotlib.org/faq/usage_faq.html#what-is-a-backend
+from matplotlib import pyplot as plt
 import numpy as np
 import numpy.ma as ma
 import raw_math # Our computation routines
@@ -62,3 +66,52 @@ def tiff_rgb_writer(raw_filename, color_planes, **options):
   options['photometric'] = 'rgb'
   options['metadata'] = {'DocumentName': tiff_filename}
   tifffile.imsave(tiff_filename, rgb_color_planes, options)
+
+def plot_color_planes_histogram(color_planes, bins, raw_bit_depth):
+  # High DPI screen plot resolution hack
+  # TODO: figure out how to add some intelligence for handling different display DPIs
+  # Qt5Agg plotting backend seems to handle this gracefully (and plots faster!)
+  #mpl.rcParams['figure.dpi'] = 300
+
+  # Switch matplotlib to greyscale mode
+  # TODO: do we still need this?
+  #plt.gray()
+
+  for color_plane_name in color_planes:
+    # Use Numba to compute histogram, more performant than simply using numpy
+    color_plane_hist, color_plane_hist_bins = raw_math.numba_histogram(
+      color_planes[color_plane_name]["1D"],
+      bins
+    )
+
+    # Create plot for a basic histogram of this color plane
+    plt.plot(color_plane_hist_bins[:-1], color_plane_hist, 
+             color=raw_math.get_color_shade(color_plane_name), 
+             alpha=0.75, 
+             linewidth=1,
+             label=color_plane_name
+    )
+
+    # Mess with axes dimensions
+    # TODO: implement args range_max & range_min
+    ax = plt.gca();
+    ax.set_ylim(0.0)
+    ax.set_xlim(0.0, 2**raw_bit_depth)
+
+  # Draw histogram plot
+  plt.title("RAW Image ADU counts")
+  plt.xlabel('ADU')
+  plt.ylabel('Count')
+  plt.legend()
+  plt.show()
+
+  # Useful for performance testing
+  # plt.show(block=False)
+  # plt.pause(1)
+  # plt.close()
+
+
+
+
+
+

@@ -60,6 +60,7 @@ parser = argparse.ArgumentParser(description='Extract and convert RAW camera fil
 parser.add_argument('-v', '--verbosity', help='Enable more logging output', type=bool, default=False)
 parser.add_argument('--version', action='version', version='%(prog)s 0.1')
 
+# Enable subparsers/subcommands
 subparsers = parser.add_subparsers(
     title='subcommands',
     description='valid subcommands',
