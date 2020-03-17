@@ -58,6 +58,8 @@ Stretch Goals:
 # Process command line arguments
 parser = argparse.ArgumentParser(description='Extract and convert RAW camera files.')
 parser.add_argument('-v', '--verbosity', help='Enable more logging output', type=bool, default=False)
+parser.add_argument('--version', action='version', version='%(prog)s 0.1')
+
 subparsers = parser.add_subparsers(
     title='subcommands',
     description='valid subcommands',
@@ -75,6 +77,18 @@ parser_tiff.add_argument(
     choices=['uint8','uint16','float32'],
     default='uint16'
 )
+parser_tiff.add_argument(
+    '--4channel',
+    type=bool,
+    help='Emulate TIFF file output of libraw 4channel example program',
+    default=False
+)
+parser_tiff.add_argument(
+    '--uninterpolated_rgb',
+    type=bool,
+    help='Create uninterpolated 16bit RGB TIFF similar to <dcraw -h -T>',
+    default=True
+)
 
 # Add argument for our input file
 parser.add_argument('raw_filename', help='Raw Filename for extraction', type=str)
@@ -87,10 +101,22 @@ color_planes = raw_util.raw_reader(args.raw_filename)
 
 # Write output
 if args.command == 'tiff':
+  # Emulate libraw 4channel example tiff file output
   raw_util.tiff_4channel_writer(
       args.raw_filename,
       color_planes,
       args.bit_depth_type,
+      compress=6
+  )
+
+  # Most basic extraction mode, write single RGB tiff with no interpolation.  Kind of like "dcraw -h -T".
+  # see interesting discussion here: https://photo.stackexchange.com/questions/92926/is-there-a-demosaicing-algorithm-that-discards-the-2%C2%BA-green-pixel-and-produces-a
+  # Method #1, do all raw processing manually
+  # Method #2, use libraw's handy RGB conversion
+  # Initially we will just do method 1 to ensure data is as unmodified as possible.
+  raw_util.tiff_rgb_writer(
+      args.raw_filename,
+      color_planes,
       compress=6
   )
 elif args.command == 'fits':
@@ -114,9 +140,5 @@ elif args.command == 'dng':
   #      https://github.com/krontech/chronos-utils/tree/master/python_raw2dng
   pass
 else:
-  # Most basic extraction mode, write single RGB tiff
-  # Method #1, do all raw processing manually
-  # Method #2, use libraw's handy RGB conversion
-  # Initially we will just do method 1 to ensure data is as unmodified as possible.
-
+  # Due to how subparsers work in Python, we never actually make it here...  Still figuring out if I care :)
   pass

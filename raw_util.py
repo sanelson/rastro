@@ -29,12 +29,12 @@ def raw_reader(raw_filename):
       color_plane_masked = ma.masked_array(np.copy(raw.raw_image_visible), mask)
       # TODO: Do camera sensors ever have an odd number of pixels in x/y?  This would skew results slightly.
       half_size_shape = tuple(int(dim/2) for dim in raw.raw_image_visible.shape)
-      color_planes[color_plane_map[i]]["1d"] = color_plane_masked[~color_plane_masked.mask]
+      color_planes[color_plane_map[i]]["1D"] = color_plane_masked[~color_plane_masked.mask]
 
       # Reshape the array
       # TODO: Is this the best way?
       # See: https://docs.scipy.org/doc/numpy/reference/generated/numpy.reshape.html
-      color_planes[color_plane_map[i]]["2d"] = np.reshape(color_planes[color_plane_map[i]]["1d"], half_size_shape)
+      color_planes[color_plane_map[i]]["2D"] = np.reshape(color_planes[color_plane_map[i]]["1D"], half_size_shape)
 
     return color_planes
 
@@ -43,4 +43,22 @@ def tiff_4channel_writer(raw_filename, color_planes, bit_depth_type, **options):
   for color_plane_name in color_planes:
     tiff_filename = raw_filename + "." + color_plane_name + ".tiff"
     options['metadata'] = {'DocumentName': tiff_filename}
-    tifffile.imsave(tiff_filename, color_planes[color_plane_name]['2d'].astype(bit_depth_type), options)
+    tifffile.imsave(tiff_filename, color_planes[color_plane_name]['2D'].astype(bit_depth_type), options)
+
+def tiff_rgb_writer(raw_filename, color_planes, **options):
+  # Average green color planes
+  # We're going to write a 16bit TIFF file since an 8bit file would look like garbage, plus we would lose quite a 
+  # large amount of the camera sensor and ADC sensitivity.
+  # Casting the averaged (float) value to uint16 appears to perform a floor() on the value.  1266.5 => 1266
+  green_color_plane = (( color_planes["G1"]["2D"] + color_planes["G2"]["2D"] ) / 2.0).astype('uint16')
+  red_color_plane = color_planes["R"]["2D"].astype('uint16')
+  blue_color_plane = color_planes["B"]["2D"].astype('uint16')
+
+  # Combine color plane arrays
+  # see: https://docs.scipy.org/doc/numpy/reference/generated/numpy.stack.html#numpy.stack
+  rgb_color_planes = np.stack((red_color_plane, green_color_plane, blue_color_plane), axis=-1)
+
+  tiff_filename = raw_filename + ".RGB.tiff"
+  options['photometric'] = 'rgb'
+  options['metadata'] = {'DocumentName': tiff_filename}
+  tifffile.imsave(tiff_filename, rgb_color_planes, options)
