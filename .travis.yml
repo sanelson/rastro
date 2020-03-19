@@ -1,0 +1,12 @@
+language: python
+
+python:
+  - '3.8'
+
+script: true
+
+deploy:
+  provider: pypi
+  user: "sanelson"
+  on:
+    tags: true
