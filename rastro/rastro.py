@@ -2,11 +2,14 @@
 
 """rastro.rastro: provides entry point main()."""
 
-__version__ = "0.0.1"
-
 import argparse
-from .lib import math  # Our computation routines
-from .lib import util  # Our utility routines
+from . import __version__ as VERSION
+
+# Import our libraries
+#from rastro.extract import raw, exif
+from rastro.extract import raw
+from rastro.convert import tiff, fits
+from rastro.analyze import histogram, stats, rawpixels
 
 def main():
   # Used the following guides to organize this python project
@@ -86,7 +89,7 @@ def main():
   #parser = argparse.ArgumentParser(description='Extract and convert RAW camera files.')
   parser = argparse.ArgumentParser(description='Process and analyze RAW camera files.')
   parser.add_argument('-v', '--verbosity', help='Enable more logging output', type=bool, default=False)
-  parser.add_argument('--version', action='version', version='%(prog)s {}'.format(__version__))
+  parser.add_argument('--version', action='version', version='%(prog)s {}'.format(VERSION))
   
   # Enable main commands (first level subparsers)
   commands = parser.add_subparsers(
@@ -96,19 +99,19 @@ def main():
       dest='command'
   )
   
-  # Add command for extraction tasks
-  parser_extract = commands.add_parser('extract', help='Extract/convert RAW image data')
+  # Add command for conversion tasks
+  parser_convert = commands.add_parser('convert', help='Convert RAW image data')
 
-  # Enable extraction subcommands
-  extract_commands = parser_extract.add_subparsers(
-      title='extract_commands',
-      description='valid extraction commands',
-      help='Extract Command help',
-      dest='extract_command'
+  # Enable conversion subcommands
+  convert_commands = parser_convert.add_subparsers(
+      title='convert_commands',
+      description='valid conversion commands',
+      help='Convert Command help',
+      dest='convert_command'
   )
  
   # Add subcommands for different image types
-  parser_tiff = extract_commands.add_parser('tiff', help='Export in TIFF format')
+  parser_tiff = convert_commands.add_parser('tiff', help='Export in TIFF format')
   # TODO: ensure RGB image output must be in uint8
   parser_tiff.add_argument(
       '--bit_depth_type',
@@ -129,7 +132,7 @@ def main():
   )
   
   # Add FITS subcommand
-  parser_fits = extract_commands.add_parser('fits', help='Export in FITS format')
+  parser_fits = convert_commands.add_parser('fits', help='Export in FITS format')
   
   parser_fits.add_argument(
       '--color_plane_name',
@@ -142,7 +145,7 @@ def main():
   # Add command for analysis tasks
   parser_analyze = commands.add_parser('analyze', help='Analyze RAW image data')
 
-  # Enable extraction subcommands
+  # Enable analysis subcommands
   analyze_commands = parser_analyze.add_subparsers(
       title='analyze_commands',
       description='valid analysis commands',
@@ -184,22 +187,22 @@ def main():
 
   
   if args.command == 'analyze' and args.analyze_command == 'stats':
-    util.output_basic_stats(raw_filenames[0])
+    stats.output_basic_stats(raw_filenames[0])
   elif args.command == 'analyze' and args.analyze_command == 'rawpixels':
     # Note that this function takes one or more RAW files.  The more the better for analysis.
     # TODO: Pass hot/dead pixel files as named arguments.  If no output files are provided, 
     # simply output pixel list to STDOUT
-    util.enhance_rawpixels(args.hot_pixel_file, args.dead_pixel_file, raw_filenames)
+    rawpixels.enhance_rawpixels(args.hot_pixel_file, args.dead_pixel_file, raw_filenames)
   else:
     # Extract color planes from RAW file
-    color_planes = util.raw_reader(raw_filenames[0])
+    color_planes = extract.raw.reader(raw_filenames[0])
   
   # Write output
-  if args.command == 'extract':
-    if args.extract_command == 'tiff':
+  if args.command == 'convert':
+    if args.convert_command == 'tiff':
       if args.all_channels: 
         # Emulate libraw 4channel example tiff file output
-        util.tiff_all_channels_writer(
+        tiff.all_channels_writer(
             raw_filenames[0],
             color_planes,
             args.bit_depth_type,
@@ -211,21 +214,21 @@ def main():
         # Method #1, do all raw processing manually
         # Method #2, use libraw's handy RGB conversion
         # Initially we will just do method 1 to ensure data is as unmodified as possible.
-        util.tiff_rgb_writer(
+        tiff.rgb_writer(
             raw_filenames[0],
             color_planes,
             compress=6
         )
       else:
         # By default, just spit out an RGB tiff
-        util.tiff_rgb_writer(
+        tiff.rgb_writer(
             raw_filenames[0],
             color_planes,
             compress=6
         )
-    elif args.extract_command == 'fits':
+    elif args.convert_command == 'fits':
       if args.color_plane_name:
-        util.fits_single_channel_writer(
+        fits.single_channel_writer(
             args.raw_filename[0],
             color_planes[args.color_plane_name]['2D'],
             args.color_plane_name
@@ -255,7 +258,7 @@ def main():
       pass
   if args.command == 'analyze':
     if args.analyze_command == 'histogram':
-      util.plot_color_planes_histogram(color_planes, args.bins, args.raw_bit_depth)
+      histogram.plot_color_planes_histogram(color_planes, args.bins, args.raw_bit_depth)
     else:
       pass
 

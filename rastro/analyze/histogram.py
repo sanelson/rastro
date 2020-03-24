@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-"""
-This module contains the mathmatical helper functions for the various raw utilities.
-"""
+
+import matplotlib as mpl
+# TODO: See what backends are available and fallback to tkinter with a warning if none are available
+mpl.use('Qt5Agg')  # Change plotting backend for increased performance: https://matplotlib.org/faq/usage_faq.html#what-is-a-backend
+from matplotlib import pyplot as plt
 
 import numba
 import numpy as np
@@ -76,21 +78,47 @@ def get_color_shade(color_plane_name):
 
   return color_shade_rgb
 
-def get_color_plane_map(color_plane_count, color_desc):
-  # Decode color plane indexes
-  # TODO: Make this more robust so that other cameras color names work
-  color_plane_map = list(range(color_plane_count))
-  green_idx = 1
-  for i in range(color_plane_count):
-    color_name = color_desc.decode()[i]
+def plot_color_planes_histogram(color_planes, bins, raw_bit_depth):
+  # High DPI screen plot resolution hack
+  # TODO: figure out how to add some intelligence for handling different display DPIs
+  # Qt5Agg plotting backend seems to handle this gracefully (and plots faster!)
+  #mpl.rcParams['figure.dpi'] = 300
 
-    # Apply instance suffix to green channel names
-    if color_name == 'G':
-      color_name = color_name + str(green_idx)
-      green_idx = green_idx + 1
+  # Switch matplotlib to greyscale mode
+  # TODO: do we still need this?
+  #plt.gray()
 
-    color_plane_map[i] = color_name
+  for color_plane_name in color_planes:
+    # Use Numba to compute histogram, more performant than simply using numpy
+    color_plane_hist, color_plane_hist_bins = numba_histogram(
+      color_planes[color_plane_name]["1D"],
+      bins
+    )
 
-  return color_plane_map
+    # Create plot for a basic histogram of this color plane
+    plt.plot(color_plane_hist_bins[:-1], color_plane_hist, 
+             color=get_color_shade(color_plane_name), 
+             alpha=0.75, 
+             linewidth=1,
+             label=color_plane_name
+    )
+
+    # Mess with axes dimensions
+    # TODO: implement args range_max & range_min
+    ax = plt.gca();
+    ax.set_ylim(0.0)
+    ax.set_xlim(0.0, 2**raw_bit_depth)
+
+  # Draw histogram plot
+  plt.title("RAW Image ADU counts")
+  plt.xlabel('ADU')
+  plt.ylabel('Count')
+  plt.legend()
+  plt.show()
+
+  # Useful for performance testing
+  # plt.show(block=False)
+  # plt.pause(1)
+  # plt.close()
 
 
