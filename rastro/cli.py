@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""rastro.rastro: provides entry point main()."""
+"""rastro.cli: provides entry point main()."""
 
 import argparse
 from . import __version__ as VERSION

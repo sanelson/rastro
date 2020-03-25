@@ -3,7 +3,7 @@
 """setup.py: setuptools control."""
 
 import re
-from setuptools import setup
+from setuptools import setup, find_packages
 
 version = re.search(
   '^__version__\s*=\s*"(.*)"',
@@ -14,18 +14,13 @@ version = re.search(
 with open("README.md", "rb") as f:
   long_description = f.read().decode("utf-8")
 
-#with open('VERSION') as version_file:
-#    version = version_file.read().strip()
-
 setup(
   name = "rastro",
-  packages = ["rastro"],
+  packages = find_packages(),
   entry_points = {
-      "console_scripts": ['rastro = rastro.rastro:main']
+      "console_scripts": ['rastro = rastro.cli:main']
     },
   version = version,
-#  use_scm_version=True,
-#  setup_requires=['setuptools_scm'],
   description = "Python tools for astronomical Raw image conversion and analysis using rawpy and libraw",
   long_description = long_description,
   long_description_content_type="text/markdown",
@@ -45,8 +40,9 @@ setup(
       "Topic :: Scientific/Engineering :: Astronomy"
   ],
   project_urls={
-      'Source': 'https://github.com/sanelson/rastro',
-      'Tracker': 'https://github.com/sanelson/rastro/issues',
+      'Source Code': 'https://github.com/sanelson/rastro',
+      'Bug Tracker': 'https://github.com/sanelson/rastro/issues',
   },
   python_requires='>=3.8',
+  zip_safe=False,
 )

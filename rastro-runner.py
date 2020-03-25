@@ -3,7 +3,7 @@
 
 """Convenience wrapper for running rastro directly from source tree."""
 
-from rastro.rastro import main
+from rastro.cli import main
 
 if __name__ == '__main__':
     main()

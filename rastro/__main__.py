@@ -2,5 +2,5 @@
 
 """rastro.__main__: executed when rastro directory is called as script."""
 
-from .rastro import main
+from rastro.cli import main
 main()
