@@ -27,6 +27,7 @@ setup(
   author = "Sam Nelson",
   author_email = "sanelson@siliconfuture.net",
   url = "https://github.com/sanelson/rastro",
+  # TODO: Add scikit-image and/or opencv to this list
   install_requires=[
       'numpy', 'tiffile', 'matplotlib', 'rawpy', 'numba', 'astropy', 'py3exiv2'
   ],
@@ -43,6 +44,6 @@ setup(
       'Source Code': 'https://github.com/sanelson/rastro',
       'Bug Tracker': 'https://github.com/sanelson/rastro/issues',
   },
-  python_requires='>=3.8',
+  python_requires='>=3.7',
   zip_safe=False,
 )
