@@ -33,7 +33,7 @@ def reader(raw_filename):
     color_plane_count = raw.num_colors + 1
 
     # Extract individual color planes
-    color_plane_map = math.get_color_plane_map(color_plane_count, raw.color_desc)
+    color_plane_map = get_color_plane_map(color_plane_count, raw.color_desc)
 
     # Color plane dictionary 
     # TODO: make this more pythony and use an OO approach
