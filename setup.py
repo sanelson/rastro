@@ -27,9 +27,8 @@ setup(
   author = "Sam Nelson",
   author_email = "sanelson@siliconfuture.net",
   url = "https://github.com/sanelson/rastro",
-  # TODO: Add scikit-image and/or opencv to this list
   install_requires=[
-      'numpy', 'tiffile', 'matplotlib', 'rawpy', 'numba', 'astropy', 'py3exiv2'
+      'numpy', 'tiffile', 'matplotlib', 'rawpy', 'numba', 'astropy', 'py3exiv2', 'scikit-image'
   ],
   classifiers=[
       "Programming Language :: Python :: 3",
