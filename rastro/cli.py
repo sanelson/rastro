@@ -184,10 +184,12 @@ def main():
 
   #print("args :", args)
   #print("unknown :", unknown)
-  print("raw_filenames :", raw_filenames)
+  #print("raw_filenames :", raw_filenames)
 
 
   if args.command == 'analyze' and args.analyze_command == 'stats':
+    # TODO: pop an error if trying to run basic stats on more than one file.
+    #      OR, we could fall back to a summarization mode?
     stats.output_basic_stats(raw_filenames[0])
   elif args.command == 'analyze' and args.analyze_command == 'rawpixels':
     # Note that this function takes one or more RAW files.  The more the better for analysis.
@@ -196,44 +198,57 @@ def main():
     rawpixels.enhance_rawpixels(args.hot_pixel_file, args.dead_pixel_file, raw_filenames)
   else:
     # Extract color planes from RAW file
-    color_planes = raw.reader(raw_filenames[0])
+    #color_planes = raw.reader(raw_filenames[0])
+    pass
 
   # Write output
   if args.command == 'convert':
     if args.convert_command == 'tiff':
       if args.all_channels:
-        # Emulate libraw 4channel example tiff file output
-        tiff.all_channels_writer(
-            raw_filenames[0],
-            color_planes,
-            args.bit_depth_type,
-            compress=6
-        )
+        for raw_filename in raw_filenames:
+          color_planes = raw.reader(raw_filename)
+
+          # Emulate libraw 4channel example tiff file output
+          tiff.all_channels_writer(
+              raw_filename,
+              color_planes,
+              args.bit_depth_type,
+              compress=6
+          )
       elif args.uninterpolated_rgb:
-        # Most basic extraction mode, write single RGB tiff with no interpolation.  Kind of like "dcraw -h -T".
-        # see interesting discussion here: https://photo.stackexchange.com/questions/92926/is-there-a-demosaicing-algorithm-that-discards-the-2%C2%BA-green-pixel-and-produces-a
-        # Method #1, do all raw processing manually
-        # Method #2, use libraw's handy RGB conversion
-        # Initially we will just do method 1 to ensure data is as unmodified as possible.
-        tiff.rgb_writer(
-            raw_filenames[0],
-            color_planes,
-            compress=6
-        )
+        for raw_filename in raw_filenames:
+          color_planes = raw.reader(raw_filename)
+
+          # Most basic extraction mode, write single RGB tiff with no interpolation.  Kind of like "dcraw -h -T".
+          # see interesting discussion here: https://photo.stackexchange.com/questions/92926/is-there-a-demosaicing-algorithm-that-discards-the-2%C2%BA-green-pixel-and-produces-a
+          # Method #1, do all raw processing manually
+          # Method #2, use libraw's handy RGB conversion
+          # Initially we will just do method 1 to ensure data is as unmodified as possible.
+          tiff.rgb_writer(
+              raw_filename,
+              color_planes,
+              compress=6
+          )
       else:
-        # By default, just spit out an RGB tiff
-        tiff.rgb_writer(
-            raw_filenames[0],
-            color_planes,
-            compress=6
-        )
+        for raw_filename in raw_filenames:
+          color_planes = raw.reader(raw_filename)
+
+          # By default, just spit out an RGB tiff
+          tiff.rgb_writer(
+              raw_filename,
+              color_planes,
+              compress=6
+          )
     elif args.convert_command == 'fits':
       if args.color_plane_name:
-        fits.single_channel_writer(
-            raw_filenames[0],
-            color_planes[args.color_plane_name]['2D'],
-            args.color_plane_name
-        )
+        for raw_filename in raw_filenames:
+          color_planes = raw.reader(raw_filename)
+
+          fits.single_channel_writer(
+              raw_filename,
+              color_planes[args.color_plane_name]['2D'],
+              args.color_plane_name
+          )
       else:
         # TBD
         pass
@@ -259,6 +274,7 @@ def main():
       pass
   if args.command == 'analyze':
     if args.analyze_command == 'histogram':
+      color_planes = raw.reader(raw_filenames[0])
       histogram.plot_color_planes_histogram(color_planes, args.bins, args.raw_bit_depth)
     else:
       pass
