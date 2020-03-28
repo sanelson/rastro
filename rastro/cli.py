@@ -176,7 +176,7 @@ def main():
   # Add argument for our input file(s)
   #parser.add_argument('raw_filenames', help='Raw Filename(s) for processing', nargs=argparse.REMAINDER, type=str)
   parser.add_argument('raw_filenames', help='Raw Filename(s) for processing', nargs='*', type=str)
-  
+
   # Parse the args and make them available
   #args = parser.parse_args()
   # This is really gross but it works for now. For some reason argparse trips over more than one raw filename.
@@ -184,8 +184,9 @@ def main():
 
   #print("args :", args)
   #print("unknown :", unknown)
+  print("raw_filenames :", raw_filenames)
 
-  
+
   if args.command == 'analyze' and args.analyze_command == 'stats':
     stats.output_basic_stats(raw_filenames[0])
   elif args.command == 'analyze' and args.analyze_command == 'rawpixels':
@@ -195,12 +196,12 @@ def main():
     rawpixels.enhance_rawpixels(args.hot_pixel_file, args.dead_pixel_file, raw_filenames)
   else:
     # Extract color planes from RAW file
-    color_planes = extract.raw.reader(raw_filenames[0])
-  
+    color_planes = raw.reader(raw_filenames[0])
+
   # Write output
   if args.command == 'convert':
     if args.convert_command == 'tiff':
-      if args.all_channels: 
+      if args.all_channels:
         # Emulate libraw 4channel example tiff file output
         tiff.all_channels_writer(
             raw_filenames[0],
@@ -229,7 +230,7 @@ def main():
     elif args.convert_command == 'fits':
       if args.color_plane_name:
         fits.single_channel_writer(
-            args.raw_filename[0],
+            raw_filenames[0],
             color_planes[args.color_plane_name]['2D'],
             args.color_plane_name
         )

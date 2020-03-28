@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import rawpy
+import io
 import pyexiv2
 from pyexiv2.exif import ExifTag, ExifValueError
 import numba
