@@ -3,6 +3,8 @@
 """rastro.cli: provides entry point main()."""
 
 import argparse
+import sys
+from os.path import basename
 from . import __version__ as VERSION
 
 # Import our libraries
@@ -84,6 +86,10 @@ def main():
   # plotted histogram so that it corresponds with the camera ADU values.  My math and assumptions are very Canon EOS
   # specific, other cameras have different sensor and ADC configurations which might make my analysis worthless.
   raw_bit_depth = 14
+
+  # Grab the invocation command
+  rastro_command = " ".join([basename(sys.argv[0])] + sys.argv[1:])
+  #print(rastro_command)
   
   # Process command line arguments
   #parser = argparse.ArgumentParser(description='Extract and convert RAW camera files.')
@@ -241,14 +247,17 @@ def main():
           )
     elif args.convert_command == 'fits':
       if args.color_plane_name:
-        for raw_filename in raw_filenames:
-          color_planes = raw.reader(raw_filename)
+        # Translate EXIF data to FITS format 
+        fits.single_channel_writer_header(raw_filenames, args.color_plane_name, rastro_command, VERSION)
 
-          fits.single_channel_writer(
-              raw_filename,
-              color_planes[args.color_plane_name]['2D'],
-              args.color_plane_name
-          )
+#        for raw_filename in raw_filenames:
+#          color_planes = raw.reader(raw_filename)
+#
+#          fits.single_channel_writer(
+#              raw_filename,
+#              color_planes[args.color_plane_name]['2D'],
+#              args.color_plane_name
+#          )
       else:
         # TBD
         pass
