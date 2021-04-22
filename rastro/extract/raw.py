@@ -1,8 +1,44 @@
 # -*- coding: utf-8 -*-
 import rawpy
+import io
 
 import numpy as np
 import numpy.ma as ma
+
+import pyexiv2
+from pyexiv2.exif import ExifTag, ExifValueError
+
+#class Image:
+#
+#  def __init__(self, file):
+#    self.file = file
+#
+#
+#
+#class MetaData:
+#  pass
+#
+#class Raw:
+#
+#  def __init__(self, file):
+#    self.file = file
+#
+#  def read(self):
+#    metadata = pyexiv2.ImageMetadata(self.file)
+#    metadata.read()
+#
+#    set_metadata(metadata)
+#
+#    # Create io buffer to re-use with rawpy
+#    byteio = io.BytesIO(metadata.buffer)
+#
+#    get_colorplanes(byteio)
+#
+#  def set_metadata(self, metadata):
+#    pass
+#
+
+
 
 def get_color_plane_map(color_plane_count, color_desc):
   # Decode color plane indexes
